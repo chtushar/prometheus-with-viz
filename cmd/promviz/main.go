@@ -3,11 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/prometheus/common/model"
 	"os"
 	"os/signal"
 	"strings"
 	"time"
+
+	"github.com/prometheus/common/model"
+
+	"github.com/mum4k/termdash"
+	"github.com/mum4k/termdash/container/grid"
+	"github.com/mum4k/termdash/terminal/terminalapi"
 )
 
 func main() {
@@ -67,6 +72,59 @@ func main() {
 		}
 	}
 
+	d := dashboard.New()
+	defer d.Terminal.Close()
+
+	// line, err := sparkline.New(
+	// 	sparkline.Color(cell.ColorGreen),
+	// )
+
+	// const max = 100
+	// go periodic(ctx, 5000*time.Millisecond, func() error {
+	// 	v := int(rand.Int31n(max + 1))
+	// 	line.Clear()
+	// 	return line.Add([]int{v})
+	// })
+
+
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	// if err := line.Add(data); err != nil {
+	// 	panic(err)
+	// }
+	
+	builder := grid.New()
+	// builder.Add(
+	// 	grid.ColWidthPerc(70, 
+	// 		grid.Widget(line,
+	// 		container.Border(linestyle.Light),
+	// 		container.BorderTitle("Press Esc to quit"),
+	// 	),
+	// ))
+
+	gridOpts, err := builder.Build()
+
+	if err != nil {
+		panic(err)
+	}
+	
+	if err :=  d.Container.Update("root", gridOpts...); err != nil {
+		panic(err)
+	}
+
+
+	quitter := func(k *terminalapi.Keyboard) {
+		if k.Key.String() == "KeyEsc"  {
+			cancel()
+		}
+	}
+
+	if err := termdash.Run(ctx, d.Terminal, d.Container, termdash.KeyboardSubscriber(quitter)); err != nil {
+		fmt.Printf("termdash.Run => %v", err)
+	}
 }
 
 func displayResult(result model.Value) {
