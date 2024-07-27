@@ -1,4 +1,4 @@
-package main
+package dashboard
 
 type PanelType string
 
@@ -17,12 +17,7 @@ type (
 			Type string `json:"type"`
 			Uid  string `json:"uid"`
 		} `json:"datasource"`
-		GridPos struct {
-			H int `json:"h"`
-			W int `json:"w"`
-			X int `json:"x"`
-			Y int `json:"y"`
-		} `json:"gridPos"`
+		GridPos GridPos	   `json:"gridPos"`
 		ID      int           `json:"id"`
 		Panels  []interface{} `json:"panels,omitempty"`
 		Targets []struct {

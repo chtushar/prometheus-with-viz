@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/prometheus/prometheus/cmd/promviz/dashboard"
 )
 
 
@@ -22,6 +23,15 @@ var (
 		b.Left = "┤"
 		return titleStyle.BorderStyle(b)
 	}()
+
+	panelStyle = func() lipgloss.Style {
+		b := lipgloss.RoundedBorder()
+		b.Left = "│"
+		b.Right = "│"
+		b.Top = "─"
+		b.Bottom = "─"
+		return lipgloss.NewStyle().BorderStyle(b).Padding(1, 1)
+	}()
 )
 
 type App struct {
@@ -32,6 +42,7 @@ type Model struct {
 	viewport viewport.Model
 	content  string
 	ready   bool
+	dashboard *dashboard.Dashboard
 }
 
 func (m Model) headerView() string {
@@ -52,6 +63,11 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
+
 	switch msg := msg.(type) {
 		case tea.KeyMsg: 
 			switch msg.Type {
@@ -64,27 +80,63 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			headerHeight := lipgloss.Height(m.headerView())
 			footerHeight := lipgloss.Height(m.footerView())
 			verticalMarginHeight := headerHeight + footerHeight
-		
-			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
-			m.viewport.YPosition = headerHeight
-			m.viewport.HighPerformanceRendering = false
-			m.viewport.SetContent(m.content)
-			m.ready = true
+			
+			if !m.ready {
+				m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+				m.viewport.HighPerformanceRendering = false
+				
+				m.ready = true
+			} else {
+				m.viewport.Width = msg.Width
+				m.viewport.Height = msg.Height - verticalMarginHeight
+			}
+
+
+		case tea.MouseMsg:
+			if msg.Action == tea.MouseActionMotion {
+				m.viewport, cmd = m.viewport.Update(msg)
+				cmds = append(cmds, cmd)
+			}
 	}
-	return m, nil
+
+	m.viewport, cmd = m.viewport.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 
 func (m Model) View() string {
 	if !m.ready {
 		return "\n  Initializing..."
+	} 
+
+	content := ""
+	for _, p := range m.dashboard.Panels {
+		pos := dashboard.GetNewGridPos(p.GridPos, m.viewport.Width)
+
+		panelStyle.Width(pos.W / 3)
+		panelStyle.Height(pos.H / 3)
+		panelStyle.MarginTop(pos.Y * m.viewport.Height / 24)
+		panelStyle.MarginLeft(pos.X * m.viewport.Width / 24)
+
+		panel := panelStyle.Render(fmt.Sprintf("%s\n%d\n%d", p.Title, pos.W, len(m.dashboard.Panels)))
+
+		content += panel
 	}
+	m.viewport.SetContent(content)
+
 	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
 
 
-func New() *App {
-	p := tea.NewProgram(&Model{})
+func New(d *dashboard.Dashboard) *App {
+	p := tea.NewProgram(&Model{
+			dashboard: d,
+		},
+		tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
+		tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
+	)
 	return &App{
 		Program: p,
 	}
