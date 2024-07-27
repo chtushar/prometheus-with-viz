@@ -16,6 +16,9 @@ require (
 	github.com/aws/aws-sdk-go v1.54.19
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3
 	github.com/cespare/xxhash/v2 v2.3.0
+	github.com/charmbracelet/bubbles v0.18.0
+	github.com/charmbracelet/bubbletea v0.26.6
+	github.com/charmbracelet/lipgloss v0.10.0
 	github.com/dennwc/varint v1.0.0
 	github.com/digitalocean/godo v1.118.0
 	github.com/docker/docker v27.0.3+incompatible
@@ -45,6 +48,7 @@ require (
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b
 	github.com/linode/linodego v1.37.0
 	github.com/miekg/dns v1.1.61
+	github.com/mum4k/termdash v0.20.0
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
@@ -102,15 +106,11 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/NimbleMarkets/ntcharts v0.1.2 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
-	github.com/charmbracelet/bubbles v0.18.0 // indirect
-	github.com/charmbracelet/bubbletea v0.26.6 // indirect
-	github.com/charmbracelet/lipgloss v0.10.0 // indirect
 	github.com/charmbracelet/x/ansi v0.1.2 // indirect
 	github.com/charmbracelet/x/input v0.1.0 // indirect
 	github.com/charmbracelet/x/term v0.1.1 // indirect
@@ -129,8 +129,6 @@ require (
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/gdamore/tcell/v2 v2.7.4 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-kit/kit v0.12.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
@@ -190,7 +188,6 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
-	github.com/mum4k/termdash v0.20.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect

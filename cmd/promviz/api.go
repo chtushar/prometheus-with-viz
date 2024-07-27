@@ -48,6 +48,19 @@ func (c *PrometheusClient) Query(ctx context.Context, query string, ts time.Time
 	return result, nil
 }
 
+func (c *PrometheusClient) QueryRange(ctx context.Context, query string, r v1.Range) (model.Value, error) {
+	result, warnings, err := c.api.QueryRange(ctx, query, r)
+	if err != nil {
+		return nil, err
+	}
+	if len(warnings) > 0 {
+		for _, w := range warnings {
+			fmt.Printf("Warning: %s\n", w)
+		}
+	}
+	return result, nil
+}
+
 type LoggingRoundTripper struct {
 	Proxied http.RoundTripper
 }
