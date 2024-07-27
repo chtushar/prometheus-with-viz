@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 )
 
@@ -12,6 +13,8 @@ func ParseDashboardJson(r io.Reader) (*Dashboard, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println(d)
 
 	return &d, nil
 }

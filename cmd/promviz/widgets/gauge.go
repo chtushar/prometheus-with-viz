@@ -1,29 +1,31 @@
 package widgets
 
-// import "github.com/mum4k/termdash/widgets/gauge"
+import (
+	"fmt"
 
-// type Gauge struct {
-// 	Query string
-// 	Timestamp float32
-// 	Value float32
-// }
+	"github.com/mum4k/termdash/widgets/gauge"
+)
 
-// func NewGauge(query string, timestamp float32, value float32) *Gauge {
-// 	return &Gauge{
-// 		Query: query,
-// 		Timestamp: timestamp,
-// 		Value: value,
-// 	}
-// }
+type Gauge struct {
+	Query     string
+	Timestamp float32
+	Value     float32
+	G         *gauge.Gauge
+}
 
-// func (g *Gauge) AddWidget() error {
-// 	gauge, err := gauge.New()
+func NewGauge(query string, timestamp float32, value float32) *Gauge {
+	gauge, err := gauge.New()
 
-// 	if err != nil {
-// 		panic(err)
-// 	}
+	fmt.Println("guage value:", value)
 
-// 	// gauge.Draw()
+	if err != nil {
+		panic(err)
+	}
 
-// 	return nil
-// }
+	return &Gauge{
+		Query:     query,
+		Timestamp: timestamp,
+		Value:     value,
+		G:         gauge,
+	}
+}
