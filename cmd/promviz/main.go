@@ -74,29 +74,9 @@ func main() {
 
 	d := dashboard.New()
 	defer d.Terminal.Close()
-
-	// line, err := sparkline.New(
-	// 	sparkline.Color(cell.ColorGreen),
-	// )
-
-	// const max = 100
-	// go periodic(ctx, 5000*time.Millisecond, func() error {
-	// 	v := int(rand.Int31n(max + 1))
-	// 	line.Clear()
-	// 	return line.Add([]int{v})
-	// })
-
-
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// data := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	// if err := line.Add(data); err != nil {
-	// 	panic(err)
-	// }
 	
 	builder := grid.New()
+	
 	// builder.Add(
 	// 	grid.ColWidthPerc(70, 
 	// 		grid.Widget(line,
