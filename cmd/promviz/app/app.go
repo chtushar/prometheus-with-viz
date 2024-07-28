@@ -3,10 +3,11 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/dustin/go-humanize"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/dustin/go-humanize"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -48,7 +49,7 @@ type Model struct {
 
 func (m Model) fetchDataFromPrometheus(t time.Time) error {
 	variableValues := map[string]string{
-		"$node":            "anakin-rpi.lan:9100",
+		"$node":            "192.168.0.105:9100",
 		"$job":             "node-exporter",
 		"$__rate_interval": "5m",
 	}

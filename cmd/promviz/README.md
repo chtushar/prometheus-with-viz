@@ -38,7 +38,3 @@ Panel type support:
 - [ ] Heatmap
 - [ ] Table
 - [ ] Text
-
-```
-
-```
