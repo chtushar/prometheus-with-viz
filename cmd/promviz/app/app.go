@@ -3,11 +3,10 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/dustin/go-humanize"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -48,11 +47,15 @@ type Model struct {
 }
 
 func (m Model) fetchDataFromPrometheus(t time.Time) error {
-	variableValues := map[string]string{
-		"$node":            "192.168.0.105:9100",
-		"$job":             "node-exporter",
-		"$__rate_interval": "5m",
+	variableValues := map[string]string{}
+
+	for _, v := range m.dashboard.Templating.List {
+		if v.Current.Value != "" {
+			variableValues["$"+v.Name] = v.Current.Value
+		}
 	}
+
+	variableValues["$__rate_interval"] = "5m"
 
 	now := t
 	start := now.Add(-24 * time.Hour)
