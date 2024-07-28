@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"sort"
 	"strings"
 	"time"
@@ -132,7 +133,7 @@ func (m Model) renderPanel(panel *dashboard.Panel) string {
 		return RenderGauge(panel.Title, value, 100, panel.GridPos, &m.viewport)
 	case dashboard.PanelTypeStat:
 		value := m.getValueForPanel(panel.ID)
-		return RenderStat(panel.Title, fmt.Sprintf("%.2f", value), panel.GridPos, &m.viewport)
+		return RenderStat(panel.Title, formatter(panel.FieldConfig.Defaults.Unit, value), panel.GridPos, &m.viewport)
 	case dashboard.PanelTypeTimeseries:
 		var series []*querier.TimeSeries
 		ts, ok := m.timeseriesResults[panel.ID]
@@ -318,4 +319,17 @@ func New(ctx context.Context, d *dashboard.Dashboard, q *querier.Querier) *App {
 	return &App{
 		Program: p,
 	}
+}
+
+func formatter(unit string, value float64) string {
+	if unit == "s" {
+		t := time.Now().Add(-1 * time.Duration(value) * time.Second)
+		return humanize.Time(t)
+	}
+
+	if unit == "bytes" {
+		return humanize.IBytes(uint64(value))
+	}
+
+	return fmt.Sprintf("%.2f", value)
 }

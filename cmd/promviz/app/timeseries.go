@@ -1,10 +1,12 @@
 package app
 
 import (
+	"fmt"
 	"github.com/NimbleMarkets/ntcharts/canvas/runes"
 	"github.com/NimbleMarkets/ntcharts/linechart/timeserieslinechart"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dustin/go-humanize"
 	"github.com/prometheus/prometheus/cmd/promviz/dashboard"
 	"github.com/prometheus/prometheus/cmd/promviz/querier"
 )
@@ -99,6 +101,24 @@ func RenderTimeSeries(
 	t1.SetYRange(minValue-padding, maxValue+padding)
 	t1.SetViewYRange(minValue-padding, maxValue+padding)
 	t1.SetXRange(float64(minTime), float64(maxTime))
+
+	if unit == "bytes" {
+		t1.YLabelFormatter = func(i int, f float64) string {
+			return humanize.IBytes(uint64(f))
+		}
+	}
+
+	if unit == "percentunit" {
+		t1.YLabelFormatter = func(i int, f float64) string {
+			return fmt.Sprintf("%f%%", f)
+		}
+	}
+
+	if unit == "celsius" {
+		t1.YLabelFormatter = func(i int, f float64) string {
+			return fmt.Sprintf("%f°C", f)
+		}
+	}
 
 	t1.DrawAll()
 

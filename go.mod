@@ -23,6 +23,7 @@ require (
 	github.com/dennwc/varint v1.0.0
 	github.com/digitalocean/godo v1.118.0
 	github.com/docker/docker v27.0.3+incompatible
+	github.com/dustin/go-humanize v1.0.1
 	github.com/edsrzf/mmap-go v1.1.0
 	github.com/envoyproxy/go-control-plane v0.12.0
 	github.com/envoyproxy/protoc-gen-validate v1.0.4
@@ -49,7 +50,6 @@ require (
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b
 	github.com/linode/linodego v1.37.0
 	github.com/miekg/dns v1.1.61
-	github.com/mum4k/termdash v0.20.0
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
