@@ -30,6 +30,7 @@ func RenderTimeSeries(
 	series []*querier.TimeSeries,
 	gridPos dashboard.GridPos,
 	viewport *viewport.Model,
+	unit string,
 ) string {
 	colWidth := viewport.Width / 24
 	colHeight := viewport.Height / 24
@@ -59,6 +60,10 @@ func RenderTimeSeries(
 
 	for _, v := range ts.Matrix[0].Values {
 		value := float64(v.Value)
+
+		if unit == "percentunit" {
+			value = value * 100
+		}
 
 		timestamp := v.Timestamp
 
@@ -94,6 +99,8 @@ func RenderTimeSeries(
 	t1.SetYRange(minValue-padding, maxValue+padding)
 	t1.SetViewYRange(minValue-padding, maxValue+padding)
 	t1.SetXRange(float64(minTime), float64(maxTime))
+
+	t1.DrawAll()
 
 	// Combine title and chart
 	result := defaultStyle.Render(

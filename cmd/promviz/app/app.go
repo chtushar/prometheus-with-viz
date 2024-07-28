@@ -125,7 +125,7 @@ func (m Model) renderPanel(panel *dashboard.Panel) string {
 			series = ts
 		}
 
-		return RenderTimeSeries(panel.Title, series, panel.GridPos, &m.viewport)
+		return RenderTimeSeries(panel.Title, series, panel.GridPos, &m.viewport, panel.FieldConfig.Defaults.Unit)
 	default:
 		return fmt.Sprintf("Unsupported panel type: %s", panel.Type)
 	}
