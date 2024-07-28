@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	if len(os.Args) < 2 {
@@ -46,7 +46,7 @@ func main() {
 	// 	panic(err)
 	// }
 
-	a := app.New(dashboard, q)
+	a := app.New(ctx, dashboard, q)
 
 	if _, err := a.Program.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)

@@ -1,12 +1,15 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/cmd/promviz/dashboard"
 	"github.com/prometheus/prometheus/cmd/promviz/querier"
 )
@@ -39,11 +42,69 @@ type App struct {
 	Program *tea.Program
 }
 
+type TickMsg time.Time
+
 type Model struct {
+	ctx context.Context
 	viewport viewport.Model
-	content  string
 	ready   bool
 	dashboard *dashboard.Dashboard
+	results   map[int]model.Value
+	querier *querier.Querier
+}
+
+func (m Model) checkServer () tea.Cmd {
+	parsedDuration, err := time.ParseDuration(m.dashboard.Refresh)
+
+	
+	if err != nil {
+		panic(err)
+	}
+
+	variableValues := map[string]string{
+		"$node":            "192.168.0.105:9100",
+		"$job":             "node-exporter",
+		"$__rate_interval": m.dashboard.Refresh,
+	}
+
+	now := time.Now()
+	start := now.Add(-24 * time.Hour)
+	end := now
+
+	return tea.Every(parsedDuration, func(t time.Time) tea.Msg {
+        for _, p := range m.dashboard.Panels {
+			switch p.Type {
+				case dashboard.PanelTypeGauge:
+					data, err := m.querier.FetchGaugePanelData(m.ctx, p, variableValues)
+					if err != nil {
+						return fmt.Errorf("failed to load panel %d", p.ID)
+					}
+
+					m.results[p.ID] = data
+
+				case dashboard.PanelTypeStat:
+					data, err := m.querier.FetchStatPanelData(m.ctx, p, variableValues)
+					if err != nil {
+						return fmt.Errorf("failed to load panel %d", p.ID)
+					}
+
+					m.results[p.ID] = data
+
+				case dashboard.PanelTypeTimeseries:
+					_, err := m.querier.FetchTimeSeriesPanelData(m.ctx, p, start, end, variableValues)
+					if err != nil {
+						return fmt.Errorf("failed to load panel %d", p.ID)
+					}
+
+					// TODO: rendering timeseries??
+
+					// results[panel.ID] = *data[0]
+
+					// fmt.Println(data)	
+			}
+		}
+		return TickMsg(t)
+    })
 }
 
 func (m Model) headerView() string {
@@ -60,7 +121,7 @@ func (m Model) footerView() string {
 
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return m.checkServer()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -70,6 +131,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
+		case TickMsg:
+			cmds = append(cmds, m.checkServer())
+
 		case tea.KeyMsg: 
 			switch msg.Type {
 				case tea.KeyEsc:
@@ -111,21 +175,18 @@ func (m Model) View() string {
 	if !m.ready {
 		return "\n  Initializing..."
 	} 
-
 	content := ""
 	for _, p := range m.dashboard.Panels {
-		// pos := dashboard.GetNewGridPos(p.GridPos, m.viewport.Width)
-
-		// panelStyle.Width(pos.W / 3)
-		// panelStyle.Height(pos.H / 3)
-		// panelStyle.MarginTop(pos.Y * m.viewport.Height / 24)
-		// panelStyle.MarginLeft(pos.X * m.viewport.Width / 24)
-
-		// panel := panelStyle.Render(fmt.Sprintf("%s\n%d\n%d", p.Title, pos.W, len(m.dashboard.Panels)))
-
 		var panel string
+		
 		if p.Type == dashboard.PanelTypeGauge {
-			panel = RenderGauge(p.Title, 20, 100, p.GridPos, &m.viewport)
+			var value float64 = 0
+
+			if m.results[p.ID] != nil && len(m.results[p.ID].(model.Vector)) != 0 {
+				value = float64(m.results[p.ID].(model.Vector)[0].Value)
+			}
+
+			panel = RenderGauge(p.Title, value, 100, p.GridPos, &m.viewport)
 		}
 		content += panel
 	}
@@ -135,9 +196,12 @@ func (m Model) View() string {
 }
 
 
-func New(d *dashboard.Dashboard, querier *querier.Querier) *App {
+func New(ctx context.Context, d *dashboard.Dashboard, querier *querier.Querier) *App {
 	p := tea.NewProgram(&Model{
+			ctx: ctx,
 			dashboard: d,
+			querier: querier,
+			results: make(map[int]model.Value),
 		},
 		tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
 		tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel

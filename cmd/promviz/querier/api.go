@@ -20,7 +20,8 @@ type PrometheusClient struct {
 
 func NewPrometheusClient(baseURL string) (*PrometheusClient, error) {
 	httpClient := &http.Client{
-		Transport: LoggingRoundTripper{Proxied: http.DefaultTransport},
+		// Transport: LoggingRoundTripper{Proxied: http.DefaultTransport},
+		Transport: http.DefaultTransport,
 	}
 
 	client, err := api.NewClient(api.Config{

@@ -22,7 +22,6 @@ func RenderGauge(
 	colWidth := viewport.Width / 24
 	totalWidth := colWidth * gridPos.W
 
-
 	// Ensure value is between 0 and max
 	value = math.Max(0, math.Min(value, max))
 	percentage := value / max

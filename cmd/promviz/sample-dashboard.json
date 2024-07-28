@@ -2077,7 +2077,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "1m",
+  "refresh": "5s",
   "revision": 1,
   "schemaVersion": 39,
   "tags": ["linux"],
