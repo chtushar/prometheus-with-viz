@@ -32,7 +32,7 @@ func main() {
 		panic(err)
 	}
 
-	client, err := querier.NewPrometheusClient("http://192.168.0.105:9090")
+	client, err := querier.NewPrometheusClient("http://prometheus.lan")
 	if err != nil {
 		fmt.Printf("Error creating Prometheus client: %v\n", err)
 		os.Exit(1)

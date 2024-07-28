@@ -35,12 +35,13 @@ type App struct {
 type TickMsg time.Time
 
 type Model struct {
-	ctx       context.Context
-	viewport  viewport.Model
-	ready     bool
-	dashboard *dashboard.Dashboard
-	results   map[int]model.Value
-	querier   *querier.Querier
+	ctx               context.Context
+	viewport          viewport.Model
+	ready             bool
+	dashboard         *dashboard.Dashboard
+	results           map[int]model.Value
+	timeseriesResults map[int][]*querier.TimeSeries
+	querier           *querier.Querier
 }
 
 func (m Model) checkServer() tea.Cmd {
@@ -51,7 +52,7 @@ func (m Model) checkServer() tea.Cmd {
 	}
 
 	variableValues := map[string]string{
-		"$node":            "192.168.0.105:9100",
+		"$node":            "anakin-rpi.lan:9100",
 		"$job":             "node-exporter",
 		"$__rate_interval": "5m",
 	}
@@ -80,16 +81,12 @@ func (m Model) checkServer() tea.Cmd {
 				m.results[p.ID] = data
 
 			case dashboard.PanelTypeTimeseries:
-				_, err := m.querier.FetchTimeSeriesPanelData(m.ctx, p, start, end, variableValues)
+				data, err := m.querier.FetchTimeSeriesPanelData(m.ctx, p, start, end, variableValues)
 				if err != nil {
 					return fmt.Errorf("failed to load panel %d", p.ID)
 				}
 
-				// TODO: rendering timeseries??
-
-				// results[panel.ID] = *data[0]
-
-				// fmt.Println(data)
+				m.timeseriesResults[p.ID] = data
 			}
 		}
 		return TickMsg(t)
@@ -109,51 +106,59 @@ func (m Model) footerView() string {
 }
 
 func (m Model) renderPanel(panel *dashboard.Panel) string {
-    switch panel.Type {
+	switch panel.Type {
 	case dashboard.PanelTypeRow:
 		return "\n"
-    case dashboard.PanelTypeGauge:
-        value := m.getValueForPanel(panel.ID)
-        return RenderGauge(panel.Title, value, 100, panel.GridPos, &m.viewport)
-    case dashboard.PanelTypeStat:
-        value := m.getValueForPanel(panel.ID)
-        return RenderStat(panel.Title, fmt.Sprintf("%.2f", value), panel.GridPos, &m.viewport)
-    case dashboard.PanelTypeTimeseries:
-        return "Timeseries not implemented yet"
-    default:
-        return fmt.Sprintf("Unsupported panel type: %s", panel.Type)
-    }
+	case dashboard.PanelTypeGauge:
+		value := m.getValueForPanel(panel.ID)
+		return RenderGauge(panel.Title, value, 100, panel.GridPos, &m.viewport)
+	case dashboard.PanelTypeStat:
+		value := m.getValueForPanel(panel.ID)
+		return RenderStat(panel.Title, fmt.Sprintf("%.2f", value), panel.GridPos, &m.viewport)
+	case dashboard.PanelTypeTimeseries:
+		var (
+			series []*querier.TimeSeries
+		)
+
+		ts, ok := m.timeseriesResults[panel.ID]
+		if ok {
+			series = ts
+		}
+
+		return RenderTimeSeries(panel.Title, series, panel.GridPos, &m.viewport)
+	default:
+		return fmt.Sprintf("Unsupported panel type: %s", panel.Type)
+	}
 }
 
 func (m Model) getValueForPanel(panelID int) float64 {
-    if result, ok := m.results[panelID]; ok {
-        vec, ok := result.(model.Vector)
-        if ok && len(vec) > 0 {
-            return float64(vec[0].Value)
-        }
-    }
-    return 0
+	if result, ok := m.results[panelID]; ok {
+		vec, ok := result.(model.Vector)
+		if ok && len(vec) > 0 {
+			return float64(vec[0].Value)
+		}
+	}
+	return 0
 }
 
 func (m Model) stylePanelBox(title string, content string, width int) string {
-    panelWidth := (m.viewport.Width * width) / 24 // Assuming a 24-column grid
+	panelWidth := (m.viewport.Width * width) / 24 // Assuming a 24-column grid
 
-    box := lipgloss.NewStyle().
-        BorderStyle(lipgloss.RoundedBorder()).
-        BorderForeground(lipgloss.Color("240")).
-        Padding(0, 1).
-        Width(panelWidth)
+	box := lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Padding(0, 1).
+		Width(panelWidth)
 
-    titleStyle := lipgloss.NewStyle().
-        Foreground(lipgloss.Color("99")).
-        Bold(true)
+	titleStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("99")).
+		Bold(true)
 
-    return box.Render(
-        titleStyle.Render(title) + "\n" +
-        content,
-    ) + "\n"
+	return box.Render(
+		titleStyle.Render(title)+"\n"+
+			content,
+	) + "\n"
 }
-
 
 func (m Model) Init() tea.Cmd {
 	return m.checkServer()
@@ -210,19 +215,23 @@ func (m Model) View() string {
 	}
 
 	var content strings.Builder
-    var currentRow int
-    var rowContent strings.Builder
+	var currentRow int
+	var rowContent strings.Builder
 
 	for _, p := range m.dashboard.Panels {
+		if p.Type != dashboard.PanelTypeTimeseries {
+			continue
+		}
+
 		if p.GridPos.Y > currentRow {
 			content.WriteString(rowContent.String() + "\n")
-            rowContent.Reset()
-            currentRow = p.GridPos.Y
+			rowContent.Reset()
+			currentRow = p.GridPos.Y
 		}
 
 		panelContent := m.renderPanel(p)
-        styledPanel := m.stylePanelBox(p.Title, panelContent, p.GridPos.W)
-        rowContent.WriteString(styledPanel)
+		styledPanel := m.stylePanelBox(p.Title, panelContent, p.GridPos.W)
+		rowContent.WriteString(styledPanel)
 
 		// var panel string
 
@@ -254,21 +263,22 @@ func (m Model) View() string {
 
 		// allStr = append(allStr, panel)
 	}
-	
+
 	content.WriteString(rowContent.String())
 	m.viewport.SetContent(content.String())
 
 	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
 
-func New(ctx context.Context, d *dashboard.Dashboard, querier *querier.Querier) *App {
+func New(ctx context.Context, d *dashboard.Dashboard, q *querier.Querier) *App {
 	d.Panels = dashboard.SortPanelsByPosition(d.Panels)
 
 	p := tea.NewProgram(&Model{
-		ctx:       ctx,
-		dashboard: d,
-		querier:   querier,
-		results:   make(map[int]model.Value),
+		ctx:               ctx,
+		dashboard:         d,
+		querier:           q,
+		results:           make(map[int]model.Value),
+		timeseriesResults: make(map[int][]*querier.TimeSeries),
 	},
 		tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
 		tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel

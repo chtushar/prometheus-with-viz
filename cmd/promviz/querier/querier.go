@@ -71,13 +71,18 @@ func (q *Querier) FetchStatPanelData(
 	return vector, nil
 }
 
+type TimeSeries struct {
+	LegendFormat string
+	Matrix       model.Matrix
+}
+
 func (q *Querier) FetchTimeSeriesPanelData(
 	ctx context.Context,
 	panel *dashboard.Panel,
 	start, end time.Time,
 	variables map[string]string,
-) ([]*model.Matrix, error) {
-	results := make([]*model.Matrix, 0)
+) ([]*TimeSeries, error) {
+	results := make([]*TimeSeries, 0)
 
 	for _, target := range panel.Targets {
 		if target.Hide {
@@ -100,7 +105,10 @@ func (q *Querier) FetchTimeSeriesPanelData(
 			return nil, fmt.Errorf("failed to cast %T to vector type", result)
 		}
 
-		results = append(results, &matrix)
+		results = append(results, &TimeSeries{
+			LegendFormat: target.LegendFormat,
+			Matrix:       matrix,
+		})
 	}
 
 	return results, nil
