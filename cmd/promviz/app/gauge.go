@@ -19,8 +19,7 @@ func RenderGauge(
 ) string {
 
 	// padding := 2
-	colWidth := viewport.Width / 24
-	totalWidth := colWidth * gridPos.W
+	totalWidth := (viewport.Width * gridPos.W) / 24
 
 	// Ensure value is between 0 and max
 	value = math.Max(0, math.Min(value, max))
@@ -53,12 +52,9 @@ func RenderGauge(
 	valueDisplay := fmt.Sprintf("%.2f%%", percentage*100)
 
 	// Combine gauge and value
-	result := fmt.Sprintf("╭%s╮\n│%s│\n│%s│\n│%s│\n╰%s╯\n",
-		strings.Repeat("─", totalWidth),
-		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(title),
-		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(valueDisplay),
-		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(coloredGauge),
-		strings.Repeat("─", totalWidth))
+	result := fmt.Sprintf("%s\n%s\n",
+        lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(valueDisplay),
+        lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(coloredGauge))
 
 	return result
 }
@@ -75,11 +71,7 @@ func RenderStat(
 	totalWidth := colWidth * gridPos.W
 
 	// Combine gauge and value
-	result := fmt.Sprintf("╭%s╮\n│%s│\n│%s│\n╰%s╯\n",
-		strings.Repeat("─", totalWidth),
-		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(title),
-		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(value),
-		strings.Repeat("─", totalWidth))
+	result := lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(value)
 
 	return result
 }

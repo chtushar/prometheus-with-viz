@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
@@ -26,15 +25,6 @@ var (
 		b := lipgloss.RoundedBorder()
 		b.Left = "┤"
 		return titleStyle.BorderStyle(b)
-	}()
-
-	panelStyle = func() lipgloss.Style {
-		b := lipgloss.RoundedBorder()
-		b.Left = "│"
-		b.Right = "│"
-		b.Top = "─"
-		b.Bottom = "─"
-		return lipgloss.NewStyle().BorderStyle(b).Padding(1, 1)
 	}()
 )
 
@@ -61,7 +51,7 @@ func (m Model) checkServer() tea.Cmd {
 	}
 
 	variableValues := map[string]string{
-		"$node":            "anakin-rpi.lan:9100",
+		"$node":            "192.168.0.105:9100",
 		"$job":             "node-exporter",
 		"$__rate_interval": "5m",
 	}
@@ -118,6 +108,53 @@ func (m Model) footerView() string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
 }
 
+func (m Model) renderPanel(panel *dashboard.Panel) string {
+    switch panel.Type {
+	case dashboard.PanelTypeRow:
+		return "\n"
+    case dashboard.PanelTypeGauge:
+        value := m.getValueForPanel(panel.ID)
+        return RenderGauge(panel.Title, value, 100, panel.GridPos, &m.viewport)
+    case dashboard.PanelTypeStat:
+        value := m.getValueForPanel(panel.ID)
+        return RenderStat(panel.Title, fmt.Sprintf("%.2f", value), panel.GridPos, &m.viewport)
+    case dashboard.PanelTypeTimeseries:
+        return "Timeseries not implemented yet"
+    default:
+        return fmt.Sprintf("Unsupported panel type: %s", panel.Type)
+    }
+}
+
+func (m Model) getValueForPanel(panelID int) float64 {
+    if result, ok := m.results[panelID]; ok {
+        vec, ok := result.(model.Vector)
+        if ok && len(vec) > 0 {
+            return float64(vec[0].Value)
+        }
+    }
+    return 0
+}
+
+func (m Model) stylePanelBox(title string, content string, width int) string {
+    panelWidth := (m.viewport.Width * width) / 24 // Assuming a 24-column grid
+
+    box := lipgloss.NewStyle().
+        BorderStyle(lipgloss.RoundedBorder()).
+        BorderForeground(lipgloss.Color("240")).
+        Padding(0, 1).
+        Width(panelWidth)
+
+    titleStyle := lipgloss.NewStyle().
+        Foreground(lipgloss.Color("99")).
+        Bold(true)
+
+    return box.Render(
+        titleStyle.Render(title) + "\n" +
+        content,
+    ) + "\n"
+}
+
+
 func (m Model) Init() tea.Cmd {
 	return m.checkServer()
 }
@@ -172,45 +209,61 @@ func (m Model) View() string {
 		return "\n  Initializing..."
 	}
 
-	content := ""
+	var content strings.Builder
+    var currentRow int
+    var rowContent strings.Builder
 
 	for _, p := range m.dashboard.Panels {
-		var panel string
-
-		result := m.results[p.ID]
-
-		switch p.Type {
-		case dashboard.PanelTypeGauge:
-			value := math.NaN()
-
-			vec, ok := result.(model.Vector)
-			if ok && len(vec) != 0 {
-				value = float64(vec[0].Value)
-			}
-
-			panel = RenderGauge(p.Title, value, 100, p.GridPos, &m.viewport)
-
-		case dashboard.PanelTypeStat:
-			value := math.NaN()
-
-			vec, ok := result.(model.Vector)
-			if ok && len(vec) != 0 {
-				value = float64(vec[0].Value)
-			}
-
-			str := fmt.Sprintf("%.2f %s", value, p.FieldConfig.Defaults.Unit)
-
-			panel = RenderStat(p.Title, str, p.GridPos, &m.viewport)
+		if p.GridPos.Y > currentRow {
+			content.WriteString(rowContent.String() + "\n")
+            rowContent.Reset()
+            currentRow = p.GridPos.Y
 		}
 
-		content += panel
+		panelContent := m.renderPanel(p)
+        styledPanel := m.stylePanelBox(p.Title, panelContent, p.GridPos.W)
+        rowContent.WriteString(styledPanel)
+
+		// var panel string
+
+		// result := m.results[p.ID]
+
+		// switch p.Type {
+		// case dashboard.PanelTypeGauge:
+		// 	value := math.NaN()
+
+		// 	vec, ok := result.(model.Vector)
+		// 	if ok && len(vec) != 0 {
+		// 		value = float64(vec[0].Value)
+		// 	}
+
+		// 	panel = RenderGauge(p.Title, value, 100, p.GridPos, &m.viewport)
+
+		// case dashboard.PanelTypeStat:
+		// 	value := math.NaN()
+
+		// 	vec, ok := result.(model.Vector)
+		// 	if ok && len(vec) != 0 {
+		// 		value = float64(vec[0].Value)
+		// 	}
+
+		// 	str := fmt.Sprintf("%.2f %s", value, p.FieldConfig.Defaults.Unit)
+
+		// 	panel = RenderStat(p.Title, str, p.GridPos, &m.viewport)
+		// }
+
+		// allStr = append(allStr, panel)
 	}
-	m.viewport.SetContent(content)
+	
+	content.WriteString(rowContent.String())
+	m.viewport.SetContent(content.String())
 
 	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
 
 func New(ctx context.Context, d *dashboard.Dashboard, querier *querier.Querier) *App {
+	d.Panels = dashboard.SortPanelsByPosition(d.Panels)
+
 	p := tea.NewProgram(&Model{
 		ctx:       ctx,
 		dashboard: d,

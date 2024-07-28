@@ -1,5 +1,7 @@
 package dashboard
 
+import "sort"
+
 type PanelType string
 
 const (
@@ -235,3 +237,13 @@ type (
 		WeekStart string `json:"weekStart"`
 	}
 )
+
+func SortPanelsByPosition(panels []*Panel) []*Panel {
+    sort.Slice(panels, func(i, j int) bool {
+        if panels[i].GridPos.Y == panels[j].GridPos.Y {
+            return panels[i].GridPos.X < panels[j].GridPos.X
+        }
+        return panels[i].GridPos.Y < panels[j].GridPos.Y
+    })
+    return panels
+}
