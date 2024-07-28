@@ -1,16 +1,17 @@
-package main
+package querier
 
 import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"time"
+
+	"github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 )
 
 type PrometheusClient struct {
@@ -19,7 +20,8 @@ type PrometheusClient struct {
 
 func NewPrometheusClient(baseURL string) (*PrometheusClient, error) {
 	httpClient := &http.Client{
-		Transport: LoggingRoundTripper{Proxied: http.DefaultTransport},
+		// Transport: LoggingRoundTripper{Proxied: http.DefaultTransport},
+		Transport: http.DefaultTransport,
 	}
 
 	client, err := api.NewClient(api.Config{
@@ -45,6 +47,19 @@ func (c *PrometheusClient) Query(ctx context.Context, query string, ts time.Time
 		// Log warnings if needed
 	}
 
+	return result, nil
+}
+
+func (c *PrometheusClient) QueryRange(ctx context.Context, query string, r v1.Range) (model.Value, error) {
+	result, warnings, err := c.api.QueryRange(ctx, query, r)
+	if err != nil {
+		return nil, err
+	}
+	if len(warnings) > 0 {
+		for _, w := range warnings {
+			fmt.Printf("Warning: %s\n", w)
+		}
+	}
 	return result, nil
 }
 

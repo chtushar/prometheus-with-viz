@@ -1,4 +1,6 @@
-package main
+package dashboard
+
+import "sort"
 
 type PanelType string
 
@@ -11,18 +13,22 @@ const (
 	PanelTypeUnknown    PanelType = "unknown"
 )
 
+
+type GridPos struct {
+	H int `json:"h"`
+	W int `json:"w"`
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
+
 type (
 	Panel struct {
 		Datasource struct {
 			Type string `json:"type"`
 			Uid  string `json:"uid"`
 		} `json:"datasource"`
-		GridPos struct {
-			H int `json:"h"`
-			W int `json:"w"`
-			X int `json:"x"`
-			Y int `json:"y"`
-		} `json:"gridPos"`
+		GridPos GridPos	   `json:"gridPos"`
 		ID      int           `json:"id"`
 		Panels  []interface{} `json:"panels,omitempty"`
 		Targets []struct {
@@ -240,3 +246,13 @@ type (
 		WeekStart string `json:"weekStart"`
 	}
 )
+
+func SortPanelsByPosition(panels []*Panel) []*Panel {
+    sort.Slice(panels, func(i, j int) bool {
+        if panels[i].GridPos.Y == panels[j].GridPos.Y {
+            return panels[i].GridPos.X < panels[j].GridPos.X
+        }
+        return panels[i].GridPos.Y < panels[j].GridPos.Y
+    })
+    return panels
+}
