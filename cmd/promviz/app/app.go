@@ -14,7 +14,6 @@ import (
 	"github.com/prometheus/prometheus/cmd/promviz/querier"
 )
 
-
 var (
 	titleStyle = func() lipgloss.Style {
 		b := lipgloss.RoundedBorder()
@@ -45,24 +44,23 @@ type App struct {
 type TickMsg time.Time
 
 type Model struct {
-	ctx context.Context
-	viewport viewport.Model
-	ready   bool
+	ctx       context.Context
+	viewport  viewport.Model
+	ready     bool
 	dashboard *dashboard.Dashboard
 	results   map[int]model.Value
-	querier *querier.Querier
+	querier   *querier.Querier
 }
 
-func (m Model) checkServer () tea.Cmd {
+func (m Model) checkServer() tea.Cmd {
 	parsedDuration, err := time.ParseDuration(m.dashboard.Refresh)
 
-	
 	if err != nil {
 		panic(err)
 	}
 
 	variableValues := map[string]string{
-		"$node":            "192.168.0.105:9100",
+		"$node":            "anakin-rpi.lan:9100",
 		"$job":             "node-exporter",
 		"$__rate_interval": m.dashboard.Refresh,
 	}
@@ -72,39 +70,39 @@ func (m Model) checkServer () tea.Cmd {
 	end := now
 
 	return tea.Every(parsedDuration, func(t time.Time) tea.Msg {
-        for _, p := range m.dashboard.Panels {
+		for _, p := range m.dashboard.Panels {
 			switch p.Type {
-				case dashboard.PanelTypeGauge:
-					data, err := m.querier.FetchGaugePanelData(m.ctx, p, variableValues)
-					if err != nil {
-						return fmt.Errorf("failed to load panel %d", p.ID)
-					}
+			case dashboard.PanelTypeGauge:
+				data, err := m.querier.FetchGaugePanelData(m.ctx, p, variableValues)
+				if err != nil {
+					return fmt.Errorf("failed to load panel %d", p.ID)
+				}
 
-					m.results[p.ID] = data
+				m.results[p.ID] = data
 
-				case dashboard.PanelTypeStat:
-					data, err := m.querier.FetchStatPanelData(m.ctx, p, variableValues)
-					if err != nil {
-						return fmt.Errorf("failed to load panel %d", p.ID)
-					}
+			case dashboard.PanelTypeStat:
+				data, err := m.querier.FetchStatPanelData(m.ctx, p, variableValues)
+				if err != nil {
+					return fmt.Errorf("failed to load panel %d", p.ID)
+				}
 
-					m.results[p.ID] = data
+				m.results[p.ID] = data
 
-				case dashboard.PanelTypeTimeseries:
-					_, err := m.querier.FetchTimeSeriesPanelData(m.ctx, p, start, end, variableValues)
-					if err != nil {
-						return fmt.Errorf("failed to load panel %d", p.ID)
-					}
+			case dashboard.PanelTypeTimeseries:
+				_, err := m.querier.FetchTimeSeriesPanelData(m.ctx, p, start, end, variableValues)
+				if err != nil {
+					return fmt.Errorf("failed to load panel %d", p.ID)
+				}
 
-					// TODO: rendering timeseries??
+				// TODO: rendering timeseries??
 
-					// results[panel.ID] = *data[0]
+				// results[panel.ID] = *data[0]
 
-					// fmt.Println(data)	
+				// fmt.Println(data)
 			}
 		}
 		return TickMsg(t)
-    })
+	})
 }
 
 func (m Model) headerView() string {
@@ -119,7 +117,6 @@ func (m Model) footerView() string {
 	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
 }
 
-
 func (m Model) Init() tea.Cmd {
 	return m.checkServer()
 }
@@ -131,37 +128,36 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-		case TickMsg:
-			cmds = append(cmds, m.checkServer())
+	case TickMsg:
+		cmds = append(cmds, m.checkServer())
 
-		case tea.KeyMsg: 
-			switch msg.Type {
-				case tea.KeyEsc:
-				  	return m, tea.Quit
-			  	case tea.KeyCtrlC:
-					return m, tea.Quit
-			}
-		case tea.WindowSizeMsg:
-			headerHeight := lipgloss.Height(m.headerView())
-			footerHeight := lipgloss.Height(m.footerView())
-			verticalMarginHeight := headerHeight + footerHeight
-			
-			if !m.ready {
-				m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
-				m.viewport.HighPerformanceRendering = false
-				
-				m.ready = true
-			} else {
-				m.viewport.Width = msg.Width
-				m.viewport.Height = msg.Height - verticalMarginHeight
-			}
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEsc:
+			return m, tea.Quit
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+		}
+	case tea.WindowSizeMsg:
+		headerHeight := lipgloss.Height(m.headerView())
+		footerHeight := lipgloss.Height(m.footerView())
+		verticalMarginHeight := headerHeight + footerHeight
 
+		if !m.ready {
+			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+			m.viewport.HighPerformanceRendering = false
 
-		case tea.MouseMsg:
-			if msg.Action == tea.MouseActionMotion {
-				m.viewport, cmd = m.viewport.Update(msg)
-				cmds = append(cmds, cmd)
-			}
+			m.ready = true
+		} else {
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height - verticalMarginHeight
+		}
+
+	case tea.MouseMsg:
+		if msg.Action == tea.MouseActionMotion {
+			m.viewport, cmd = m.viewport.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	m.viewport, cmd = m.viewport.Update(msg)
@@ -170,15 +166,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-
 func (m Model) View() string {
 	if !m.ready {
 		return "\n  Initializing..."
-	} 
+	}
 	content := ""
 	for _, p := range m.dashboard.Panels {
 		var panel string
-		
+
 		if p.Type == dashboard.PanelTypeGauge {
 			var value float64 = 0
 
@@ -195,14 +190,13 @@ func (m Model) View() string {
 	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
 
-
 func New(ctx context.Context, d *dashboard.Dashboard, querier *querier.Querier) *App {
 	p := tea.NewProgram(&Model{
-			ctx: ctx,
-			dashboard: d,
-			querier: querier,
-			results: make(map[int]model.Value),
-		},
+		ctx:       ctx,
+		dashboard: d,
+		querier:   querier,
+		results:   make(map[int]model.Value),
+	},
 		tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
 		tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
 	)
