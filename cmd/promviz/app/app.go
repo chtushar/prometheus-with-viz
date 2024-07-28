@@ -52,7 +52,7 @@ func (m Model) checkServer() tea.Cmd {
 	}
 
 	variableValues := map[string]string{
-		"$node":            "anakin-rpi.lan:9100",
+		"$node":            "192.168.0.105:9100",
 		"$job":             "node-exporter",
 		"$__rate_interval": "5m",
 	}
@@ -219,9 +219,6 @@ func (m Model) View() string {
 	var rowContent strings.Builder
 
 	for _, p := range m.dashboard.Panels {
-		if p.Type != dashboard.PanelTypeTimeseries {
-			continue
-		}
 
 		if p.GridPos.Y > currentRow {
 			content.WriteString(rowContent.String() + "\n")
@@ -230,38 +227,10 @@ func (m Model) View() string {
 		}
 
 		panelContent := m.renderPanel(p)
-		styledPanel := m.stylePanelBox(p.Title, panelContent, p.GridPos.W)
-		rowContent.WriteString(styledPanel)
-
-		// var panel string
-
-		// result := m.results[p.ID]
-
-		// switch p.Type {
-		// case dashboard.PanelTypeGauge:
-		// 	value := math.NaN()
-
-		// 	vec, ok := result.(model.Vector)
-		// 	if ok && len(vec) != 0 {
-		// 		value = float64(vec[0].Value)
-		// 	}
-
-		// 	panel = RenderGauge(p.Title, value, 100, p.GridPos, &m.viewport)
-
-		// case dashboard.PanelTypeStat:
-		// 	value := math.NaN()
-
-		// 	vec, ok := result.(model.Vector)
-		// 	if ok && len(vec) != 0 {
-		// 		value = float64(vec[0].Value)
-		// 	}
-
-		// 	str := fmt.Sprintf("%.2f %s", value, p.FieldConfig.Defaults.Unit)
-
-		// 	panel = RenderStat(p.Title, str, p.GridPos, &m.viewport)
-		// }
-
-		// allStr = append(allStr, panel)
+		if p.Type != dashboard.PanelTypeRow {
+			panelContent = m.stylePanelBox(p.Title, panelContent, p.GridPos.W)
+		}
+		rowContent.WriteString(panelContent)
 	}
 
 	content.WriteString(rowContent.String())
