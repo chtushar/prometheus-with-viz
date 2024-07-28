@@ -33,7 +33,7 @@ type App struct {
 	Program *tea.Program
 }
 
-type TickMsg time.Time
+type DashboardUpdate struct{}
 
 type Model struct {
 	ctx               context.Context
@@ -45,53 +45,70 @@ type Model struct {
 	querier           *querier.Querier
 }
 
-func (m Model) checkServer() tea.Cmd {
-	parsedDuration, err := time.ParseDuration(m.dashboard.Refresh)
-
-	if err != nil {
-		panic(err)
-	}
-
+func (m Model) fetchDataFromPrometheus(t time.Time) error {
 	variableValues := map[string]string{
-		"$node":            "192.168.0.105:9100",
+		"$node":            "anakin-rpi.lan:9100",
 		"$job":             "node-exporter",
 		"$__rate_interval": "5m",
 	}
 
-	now := time.Now()
+	now := t
 	start := now.Add(-24 * time.Hour)
 	end := now
 
-	return tea.Every(parsedDuration, func(t time.Time) tea.Msg {
-		for _, p := range m.dashboard.Panels {
-			switch p.Type {
-			case dashboard.PanelTypeGauge:
-				data, err := m.querier.FetchGaugePanelData(m.ctx, p, variableValues)
-				if err != nil {
-					return fmt.Errorf("failed to load panel %d", p.ID)
-				}
-
-				m.results[p.ID] = data
-
-			case dashboard.PanelTypeStat:
-				data, err := m.querier.FetchStatPanelData(m.ctx, p, variableValues)
-				if err != nil {
-					return fmt.Errorf("failed to load panel %d", p.ID)
-				}
-
-				m.results[p.ID] = data
-
-			case dashboard.PanelTypeTimeseries:
-				data, err := m.querier.FetchTimeSeriesPanelData(m.ctx, p, start, end, variableValues)
-				if err != nil {
-					return fmt.Errorf("failed to load panel %d", p.ID)
-				}
-
-				m.timeseriesResults[p.ID] = data
+	for _, p := range m.dashboard.Panels {
+		switch p.Type {
+		case dashboard.PanelTypeGauge:
+			data, err := m.querier.FetchGaugePanelData(m.ctx, p, variableValues)
+			if err != nil {
+				return fmt.Errorf("failed to load panel %d", p.ID)
 			}
+
+			m.results[p.ID] = data
+
+		case dashboard.PanelTypeStat:
+			data, err := m.querier.FetchStatPanelData(m.ctx, p, variableValues)
+			if err != nil {
+				return fmt.Errorf("failed to load panel %d", p.ID)
+			}
+
+			m.results[p.ID] = data
+
+		case dashboard.PanelTypeTimeseries:
+			data, err := m.querier.FetchTimeSeriesPanelData(m.ctx, p, start, end, variableValues)
+			if err != nil {
+				return fmt.Errorf("failed to load panel %d", p.ID)
+			}
+
+			m.timeseriesResults[p.ID] = data
 		}
-		return TickMsg(t)
-	})
+	}
+
+	return nil
+}
+
+func (m Model) refreshDashboardData(t time.Time) tea.Msg {
+	err := m.fetchDataFromPrometheus(t)
+	if err != nil {
+		panic(err)
+	}
+
+	return DashboardUpdate{}
+}
+
+func (m Model) checkServer(init bool) tea.Cmd {
+	if init {
+		return func() tea.Msg {
+			return m.refreshDashboardData(time.Now())
+		}
+	}
+
+	parsedDuration, err := time.ParseDuration(m.dashboard.Refresh)
+	if err != nil {
+		panic(err)
+	}
+
+	return tea.Every(parsedDuration, m.refreshDashboardData)
 }
 
 func (m Model) headerView() string {
@@ -158,19 +175,15 @@ func (m Model) stylePanelBox(title string, content string, width int) string {
 }
 
 func (m Model) Init() tea.Cmd {
-	return m.checkServer()
+	return m.checkServer(true)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
-	)
+	cmds := make([]tea.Cmd, 0)
 
 	switch msg := msg.(type) {
-	case TickMsg:
-		cmds = append(cmds, m.checkServer())
-
+	case DashboardUpdate:
+		cmds = append(cmds, m.checkServer(false))
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc", "ctrl+c":
@@ -203,8 +216,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.Height = msg.Height - verticalMarginHeight
 		}
 
-		m.viewport.SetContent(m.renderContent())
-
 	case tea.MouseMsg:
 		switch msg.Type {
 		case tea.MouseWheelUp:
@@ -214,7 +225,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	m.viewport, cmd = m.viewport.Update(msg)
+	vp, cmd := m.viewport.Update(msg)
+
+	m.viewport = vp
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
@@ -239,12 +252,12 @@ func (m Model) renderContent() string {
 			rowContent.Reset()
 			currentRow = p.GridPos.Y
 		}
-		
+
 		y := p.GridPos.Y
 		if y > maxY {
 			maxY = y
 		}
-		
+
 		panelContent := m.renderPanel(p)
 		if p.Type != dashboard.PanelTypeRow {
 			panelContent = m.stylePanelBox(p.Title, panelContent, p.GridPos.W)
@@ -282,7 +295,9 @@ func (m Model) View() string {
 		return "\n  Initializing..."
 	}
 
-	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
+	content := m.renderContent()
+
+	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), content, m.footerView())
 }
 
 func New(ctx context.Context, d *dashboard.Dashboard, q *querier.Querier) *App {

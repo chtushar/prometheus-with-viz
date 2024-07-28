@@ -13,12 +13,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if len(os.Args) < 2 {
+	if len(os.Args) < 3 {
 		fmt.Println("incorrect call, need json")
 		os.Exit(1)
 	}
 
-	fileName := os.Args[1]
+	prometheusURL := os.Args[1]
+	fileName := os.Args[2]
 
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -32,7 +33,7 @@ func main() {
 		panic(err)
 	}
 
-	client, err := querier.NewPrometheusClient("http://192.168.0.105:9090")
+	client, err := querier.NewPrometheusClient(prometheusURL)
 	if err != nil {
 		fmt.Printf("Error creating Prometheus client: %v\n", err)
 		os.Exit(1)
