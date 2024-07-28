@@ -116,15 +116,11 @@ func (m Model) renderPanel(panel *dashboard.Panel) string {
 		value := m.getValueForPanel(panel.ID)
 		return RenderStat(panel.Title, fmt.Sprintf("%.2f", value), panel.GridPos, &m.viewport)
 	case dashboard.PanelTypeTimeseries:
-		var (
-			series []*querier.TimeSeries
-		)
-
+		var series []*querier.TimeSeries
 		ts, ok := m.timeseriesResults[panel.ID]
 		if ok {
 			series = ts
 		}
-
 		return RenderTimeSeries(panel.Title, series, panel.GridPos, &m.viewport, panel.FieldConfig.Defaults.Unit)
 	default:
 		return fmt.Sprintf("Unsupported panel type: %s", panel.Type)
@@ -175,12 +171,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, m.checkServer())
 
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEsc:
+		switch msg.String() {
+		case "esc", "ctrl+c":
 			return m, tea.Quit
-		case tea.KeyCtrlC:
-			return m, tea.Quit
+		case "up", "k":
+			m.viewport.LineUp(1)
+		case "down", "j":
+			m.viewport.LineDown(1)
+		case "pgup":
+			m.viewport.HalfViewUp()
+		case "pgdown":
+			m.viewport.HalfViewDown()
+		case "home":
+			m.viewport.GotoTop()
+		case "end":
+			m.viewport.GotoBottom()
 		}
+
 	case tea.WindowSizeMsg:
 		headerHeight := lipgloss.Height(m.headerView())
 		footerHeight := lipgloss.Height(m.footerView())
@@ -189,17 +196,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.ready {
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
 			m.viewport.HighPerformanceRendering = false
-
 			m.ready = true
 		} else {
 			m.viewport.Width = msg.Width
 			m.viewport.Height = msg.Height - verticalMarginHeight
 		}
 
+		m.viewport.SetContent(m.renderContent())
+
 	case tea.MouseMsg:
-		if msg.Action == tea.MouseActionMotion {
-			m.viewport, cmd = m.viewport.Update(msg)
-			cmds = append(cmds, cmd)
+		switch msg.Type {
+		case tea.MouseWheelUp:
+			m.viewport.LineUp(3)
+		case tea.MouseWheelDown:
+			m.viewport.LineDown(3)
 		}
 	}
 
@@ -209,17 +219,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m Model) View() string {
-	if !m.ready {
-		return "\n  Initializing..."
-	}
-
+func (m Model) renderContent() string {
 	var content strings.Builder
 	var currentRow int
 	var rowContent strings.Builder
 
 	for _, p := range m.dashboard.Panels {
-
 		if p.GridPos.Y > currentRow {
 			content.WriteString(rowContent.String() + "\n")
 			rowContent.Reset()
@@ -234,7 +239,13 @@ func (m Model) View() string {
 	}
 
 	content.WriteString(rowContent.String())
-	m.viewport.SetContent(content.String())
+	return content.String()
+}
+
+func (m Model) View() string {
+	if !m.ready {
+		return "\n  Initializing..."
+	}
 
 	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
@@ -242,15 +253,17 @@ func (m Model) View() string {
 func New(ctx context.Context, d *dashboard.Dashboard, q *querier.Querier) *App {
 	d.Panels = dashboard.SortPanelsByPosition(d.Panels)
 
-	p := tea.NewProgram(&Model{
-		ctx:               ctx,
-		dashboard:         d,
-		querier:           q,
-		results:           make(map[int]model.Value),
-		timeseriesResults: make(map[int][]*querier.TimeSeries),
-	},
-		tea.WithAltScreen(),       // use the full size of the terminal in its "alternate screen buffer"
-		tea.WithMouseCellMotion(), // turn on mouse support so we can track the mouse wheel
+	p := tea.NewProgram(
+		&Model{
+			ctx:               ctx,
+			dashboard:         d,
+			querier:           q,
+			results:           make(map[int]model.Value),
+			timeseriesResults: make(map[int][]*querier.TimeSeries),
+		},
+		tea.WithAltScreen(),
+		tea.WithMouseCellMotion(),
+		tea.WithMouseAllMotion(),
 	)
 	return &App{
 		Program: p,
