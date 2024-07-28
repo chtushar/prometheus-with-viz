@@ -126,7 +126,7 @@ func (m Model) footerView() string {
 func (m Model) renderPanel(panel *dashboard.Panel) string {
 	switch panel.Type {
 	case dashboard.PanelTypeRow:
-		return "\n"
+		return lipgloss.NewStyle().Bold(true).Render(panel.Title)
 	case dashboard.PanelTypeGauge:
 		value := m.getValueForPanel(panel.ID)
 		return RenderGauge(panel.Title, value, 100, panel.GridPos, &m.viewport)
@@ -186,7 +186,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, m.checkServer(false))
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "esc", "ctrl+c":
+		case "esc", "ctrl+c", "q":
 			return m, tea.Quit
 		case "up", "k":
 			m.viewport.LineUp(1)

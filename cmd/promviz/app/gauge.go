@@ -17,21 +17,21 @@ func RenderGauge(
 	gridPos dashboard.GridPos,
 	viewport *viewport.Model,
 ) string {
-
-	// padding := 2
+	// Calculate the total width, accounting for border and padding
 	totalWidth := (viewport.Width * gridPos.W) / 24
+	contentWidth := totalWidth - 4 // Subtract 4 for left and right borders and padding
 
 	// Ensure value is between 0 and max
 	value = math.Max(0, math.Min(value, max))
 	percentage := value / max
-	filledWidth := int(math.Round(percentage * float64(totalWidth)))
+	filledWidth := int(math.Round(percentage * float64(contentWidth)))
 
-	// Ensure filledWidth is not negative and not greater than width
-	filledWidth = int(math.Max(0, math.Min(float64(filledWidth), float64(totalWidth))))
+	// Ensure filledWidth is not negative and not greater than contentWidth
+	filledWidth = int(math.Max(0, math.Min(float64(filledWidth), float64(contentWidth))))
 
 	// Create the gauge
 	filled := strings.Repeat("█", filledWidth)
-	empty := strings.Repeat("░", totalWidth-filledWidth)
+	empty := strings.Repeat("░", contentWidth-filledWidth)
 	gauge := filled + empty
 
 	// Color styling
@@ -53,8 +53,8 @@ func RenderGauge(
 
 	// Combine gauge and value
 	result := fmt.Sprintf("%s\n%s\n",
-        lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(valueDisplay),
-        lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(coloredGauge))
+		lipgloss.NewStyle().Width(contentWidth).Align(lipgloss.Center).Render(valueDisplay),
+		lipgloss.NewStyle().Width(contentWidth).Align(lipgloss.Center).Render(coloredGauge))
 
 	return result
 }
