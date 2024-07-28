@@ -1,20 +1,27 @@
-package main
+package querier
 
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/cmd/promviz/dashboard"
-	"strings"
-	"time"
 )
 
 type Querier struct {
 	client *PrometheusClient
 }
 
-func (q *Querier) fetchGaugePanelData(
+func New(client *PrometheusClient) *Querier {
+	return &Querier{
+		client: client,
+	}
+}
+
+func (q *Querier) FetchGaugePanelData(
 	ctx context.Context,
 	panel *dashboard.Panel,
 	variables map[string]string,
@@ -39,7 +46,7 @@ func (q *Querier) fetchGaugePanelData(
 	return vector, nil
 }
 
-func (q *Querier) fetchStatPanelData(
+func (q *Querier) FetchStatPanelData(
 	ctx context.Context,
 	panel *dashboard.Panel,
 	variables map[string]string,
@@ -64,7 +71,7 @@ func (q *Querier) fetchStatPanelData(
 	return vector, nil
 }
 
-func (q *Querier) fetchTimeSeriesPanelData(
+func (q *Querier) FetchTimeSeriesPanelData(
 	ctx context.Context,
 	panel *dashboard.Panel,
 	start, end time.Time,

@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/prometheus/prometheus/cmd/promviz/dashboard"
 	"math"
 	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/prometheus/prometheus/cmd/promviz/dashboard"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -86,6 +87,13 @@ func (m dashboardModel) renderDashboard() string {
 		case dashboard.PanelTypeGauge:
 			if result, ok := m.results[panel.ID]; ok {
 				// Assuming the result is a single scalar value
+
+				v := result.(model.Vector)
+				if len(v) == 0 {
+					fmt.Fprintf(&b, "No data available\n")
+					continue
+				}
+				
 				value := float64(result.(model.Vector)[0].Value)
 				fmt.Fprintf(&b, "%s\n", renderGauge(panel.Title, value, 100, 20))
 			} else {

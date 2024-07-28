@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/prometheus/prometheus/cmd/promviz/dashboard"
+	"github.com/prometheus/prometheus/cmd/promviz/querier"
 )
 
 
@@ -113,15 +114,19 @@ func (m Model) View() string {
 
 	content := ""
 	for _, p := range m.dashboard.Panels {
-		pos := dashboard.GetNewGridPos(p.GridPos, m.viewport.Width)
+		// pos := dashboard.GetNewGridPos(p.GridPos, m.viewport.Width)
 
-		panelStyle.Width(pos.W / 3)
-		panelStyle.Height(pos.H / 3)
-		panelStyle.MarginTop(pos.Y * m.viewport.Height / 24)
-		panelStyle.MarginLeft(pos.X * m.viewport.Width / 24)
+		// panelStyle.Width(pos.W / 3)
+		// panelStyle.Height(pos.H / 3)
+		// panelStyle.MarginTop(pos.Y * m.viewport.Height / 24)
+		// panelStyle.MarginLeft(pos.X * m.viewport.Width / 24)
 
-		panel := panelStyle.Render(fmt.Sprintf("%s\n%d\n%d", p.Title, pos.W, len(m.dashboard.Panels)))
+		// panel := panelStyle.Render(fmt.Sprintf("%s\n%d\n%d", p.Title, pos.W, len(m.dashboard.Panels)))
 
+		var panel string
+		if p.Type == dashboard.PanelTypeGauge {
+			panel = RenderGauge(p.Title, 20, 100, p.GridPos, &m.viewport)
+		}
 		content += panel
 	}
 	m.viewport.SetContent(content)
@@ -130,7 +135,7 @@ func (m Model) View() string {
 }
 
 
-func New(d *dashboard.Dashboard) *App {
+func New(d *dashboard.Dashboard, querier *querier.Querier) *App {
 	p := tea.NewProgram(&Model{
 			dashboard: d,
 		},

@@ -1,16 +1,17 @@
-package main
+package querier
 
 import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"time"
+
+	"github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 )
 
 type PrometheusClient struct {

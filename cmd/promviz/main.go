@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+
+	"github.com/prometheus/prometheus/cmd/promviz/app"
+	"github.com/prometheus/prometheus/cmd/promviz/querier"
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	if len(os.Args) < 2 {
@@ -29,16 +32,23 @@ func main() {
 		panic(err)
 	}
 
-	client, err := NewPrometheusClient("http://prometheus.lan")
+
+	client, err := querier.NewPrometheusClient("http://192.168.0.105:9090/")
 	if err != nil {
 		fmt.Printf("Error creating Prometheus client: %v\n", err)
 		os.Exit(1)
 	}
 
-	querier := Querier{client: client}
+	q := querier.New(client)
 
-	err = renderDashboard(ctx, querier, dashboard)
-	if err != nil {
-		panic(err)
+	// err = renderDashboard(ctx, q, dashboard)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	a := app.New(dashboard, q)
+
+	if _, err := a.Program.Run(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
 	}
 }
