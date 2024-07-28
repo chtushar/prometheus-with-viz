@@ -32,7 +32,7 @@ func RenderGauge(
 
 	// Create the gauge
 	filled := strings.Repeat("█", filledWidth)
-	empty := strings.Repeat("░", totalWidth - filledWidth)
+	empty := strings.Repeat("░", totalWidth-filledWidth)
 	gauge := filled + empty
 
 	// Color styling
@@ -50,7 +50,7 @@ func RenderGauge(
 	}
 
 	// Create the value display
-	valueDisplay := fmt.Sprintf("%.1f%%", percentage*100)
+	valueDisplay := fmt.Sprintf("%.2f%%", percentage*100)
 
 	// Combine gauge and value
 	result := fmt.Sprintf("╭%s╮\n│%s│\n│%s│\n│%s│\n╰%s╯\n",
@@ -58,6 +58,27 @@ func RenderGauge(
 		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(title),
 		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(valueDisplay),
 		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(coloredGauge),
+		strings.Repeat("─", totalWidth))
+
+	return result
+}
+
+func RenderStat(
+	title string,
+	value string,
+	gridPos dashboard.GridPos,
+	viewport *viewport.Model,
+) string {
+
+	// padding := 2
+	colWidth := viewport.Width / 24
+	totalWidth := colWidth * gridPos.W
+
+	// Combine gauge and value
+	result := fmt.Sprintf("╭%s╮\n│%s│\n│%s│\n╰%s╯\n",
+		strings.Repeat("─", totalWidth),
+		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(title),
+		lipgloss.NewStyle().Width(totalWidth).Align(lipgloss.Center).Render(value),
 		strings.Repeat("─", totalWidth))
 
 	return result

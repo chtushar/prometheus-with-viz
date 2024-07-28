@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -62,7 +63,7 @@ func (m Model) checkServer() tea.Cmd {
 	variableValues := map[string]string{
 		"$node":            "anakin-rpi.lan:9100",
 		"$job":             "node-exporter",
-		"$__rate_interval": m.dashboard.Refresh,
+		"$__rate_interval": "5m",
 	}
 
 	now := time.Now()
@@ -170,19 +171,38 @@ func (m Model) View() string {
 	if !m.ready {
 		return "\n  Initializing..."
 	}
+
 	content := ""
+
 	for _, p := range m.dashboard.Panels {
 		var panel string
 
-		if p.Type == dashboard.PanelTypeGauge {
-			var value float64 = 0
+		result := m.results[p.ID]
 
-			if m.results[p.ID] != nil && len(m.results[p.ID].(model.Vector)) != 0 {
-				value = float64(m.results[p.ID].(model.Vector)[0].Value)
+		switch p.Type {
+		case dashboard.PanelTypeGauge:
+			value := math.NaN()
+
+			vec, ok := result.(model.Vector)
+			if ok && len(vec) != 0 {
+				value = float64(vec[0].Value)
 			}
 
 			panel = RenderGauge(p.Title, value, 100, p.GridPos, &m.viewport)
+
+		case dashboard.PanelTypeStat:
+			value := math.NaN()
+
+			vec, ok := result.(model.Vector)
+			if ok && len(vec) != 0 {
+				value = float64(vec[0].Value)
+			}
+
+			str := fmt.Sprintf("%.2f %s", value, p.FieldConfig.Defaults.Unit)
+
+			panel = RenderStat(p.Title, str, p.GridPos, &m.viewport)
 		}
+
 		content += panel
 	}
 	m.viewport.SetContent(content)
