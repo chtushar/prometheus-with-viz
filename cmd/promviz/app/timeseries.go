@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"github.com/NimbleMarkets/ntcharts/canvas/runes"
 	"github.com/NimbleMarkets/ntcharts/linechart/timeserieslinechart"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -108,17 +107,17 @@ func RenderTimeSeries(
 		}
 	}
 
-	if unit == "percentunit" {
-		t1.YLabelFormatter = func(i int, f float64) string {
-			return fmt.Sprintf("%f%%", f)
-		}
-	}
-
-	if unit == "celsius" {
-		t1.YLabelFormatter = func(i int, f float64) string {
-			return fmt.Sprintf("%f°C", f)
-		}
-	}
+	//if unit == "percentunit" {
+	//	t1.YLabelFormatter = func(i int, f float64) string {
+	//		return fmt.Sprintf("%f%%", f)
+	//	}
+	//}
+	//
+	//if unit == "celsius" {
+	//	t1.YLabelFormatter = func(i int, f float64) string {
+	//		return fmt.Sprintf("%f°C", f)
+	//	}
+	//}
 
 	t1.DrawAll()
 
