@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -224,22 +225,56 @@ func (m Model) renderContent() string {
 	var currentRow int
 	var rowContent strings.Builder
 
+	type PanelWithString struct {
+		Panel   *dashboard.Panel
+		Content string
+	}
+
+	rowGroups := make(map[int][]PanelWithString)
+	maxY := 0
+
 	for _, p := range m.dashboard.Panels {
 		if p.GridPos.Y > currentRow {
 			content.WriteString(rowContent.String() + "\n")
 			rowContent.Reset()
 			currentRow = p.GridPos.Y
 		}
-
+		
+		y := p.GridPos.Y
+		if y > maxY {
+			maxY = y
+		}
+		
 		panelContent := m.renderPanel(p)
 		if p.Type != dashboard.PanelTypeRow {
 			panelContent = m.stylePanelBox(p.Title, panelContent, p.GridPos.W)
 		}
+		rowGroups[y] = append(rowGroups[y], PanelWithString{Panel: p, Content: panelContent})
 		rowContent.WriteString(panelContent)
 	}
 
-	content.WriteString(rowContent.String())
-	return content.String()
+	for y := range rowGroups {
+		sort.Slice(rowGroups[y], func(i, j int) bool {
+			return rowGroups[y][i].Panel.GridPos.X < rowGroups[y][j].Panel.GridPos.X
+		})
+	}
+
+	rows := make([]string, maxY+1)
+
+	for y := 0; y <= maxY; y++ {
+		rowPanels := rowGroups[y]
+		if len(rowPanels) == 0 {
+			continue
+		}
+		var horizontalPanels []string
+		for _, p := range rowPanels {
+			horizontalPanels = append(horizontalPanels, p.Content)
+		}
+
+		rows[y] = lipgloss.JoinHorizontal(lipgloss.Top, horizontalPanels...)
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, rows...)
 }
 
 func (m Model) View() string {
