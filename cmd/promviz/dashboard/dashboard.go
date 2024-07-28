@@ -13,6 +13,15 @@ const (
 	PanelTypeUnknown    PanelType = "unknown"
 )
 
+
+type GridPos struct {
+	H int `json:"h"`
+	W int `json:"w"`
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
+
 type (
 	Panel struct {
 		Datasource struct {
